@@ -18,6 +18,7 @@ namespace Friends
         static void Main(string[] args)
         {
             new Bot().MainAsync().GetAwaiter().GetResult();
+            Console.ReadKey();
         }
 
     }
