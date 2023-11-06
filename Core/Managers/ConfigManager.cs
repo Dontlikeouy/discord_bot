@@ -22,22 +22,26 @@ namespace discord_bot.Core.Managers
             if (!File.Exists(ConfigPath))
             {
                 Config = new BotConfig();
-                var json = JsonConvert.SerializeObject(Config,Formatting.Indented);
+                var json = JsonConvert.SerializeObject(Config, Formatting.Indented);
                 File.WriteAllText(ConfigPath, json);
             }
             else
             {
-                var json=File.ReadAllText(ConfigPath);
+                var json = File.ReadAllText(ConfigPath);
                 Config = JsonConvert.DeserializeObject<BotConfig>(json);
             }
 
         }
     }
-    public struct BotConfig
+    public class BotConfig
     {
+        private string token = "";
+
         [JsonProperty("token")]
-        public string Token { get; private set; }
+        public string Token { get { return token; } private set { token = value; } }
+        private string prefix = "!";
+
         [JsonProperty("prefix")]
-        public string Prefix { get; private set; } 
+        public string Prefix { get { return prefix; } private set { prefix = value; } }
     }
 }
