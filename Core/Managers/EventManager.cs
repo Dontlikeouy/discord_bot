@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace discord_bot.Core.Managers
 {
-    public class EventManager
+    public class EventManager : ModuleBase<ICommandContext>
     {
         private static DiscordSocketClient _client = ServiceManager.GetService<DiscordSocketClient>();
         private static CommandService _commandService = ServiceManager.GetService<CommandService>();
@@ -34,10 +34,10 @@ namespace discord_bot.Core.Managers
             _client.Ready += OnReady;
             _client.MessageReceived += OnMessageReceived;
             return Task.CompletedTask;
-            
+
         }
 
-              private static async Task OnMessageReceived(SocketMessage arg)
+        private static async Task OnMessageReceived(SocketMessage arg)
         {
 
             var message = arg as SocketUserMessage;
@@ -45,15 +45,19 @@ namespace discord_bot.Core.Managers
             // if (message.Author.IsBot || message.Channel is IDMChannel)
 
             var argPos = 0;
-            // //Реагирует на !(prefix) и @(упоминание)
-            if (!(message.HasStringPrefix(ConfigManager.Config.Prefix, ref argPos) || message.HasMentionPrefix(_client.CurrentUser, ref argPos)))return;
+            // Реагирует на !(prefix) или @(упоминание)
+            if (!(message.HasStringPrefix(ConfigManager.Config.Prefix, ref argPos) || message.HasMentionPrefix(_client.CurrentUser, ref argPos))) return;
             var result = await _commandService.ExecuteAsync(context, argPos, ServiceManager.Provider);
 
-            // if(!result.IsSuccess)
-            // {
-            //     if(result.Error==CommandError.UnknownCommand)return;
-            // }
-          //  await message.DeleteAsync();
+            if (!result.IsSuccess)
+            {
+                if (result.Error == CommandError.UnknownCommand)
+                {
+                    await message.Channel.SendMessageAsync($"**Неизвестная команда: {message.Content}**");
+                    return;
+                }
+            }
+            //  await message.DeleteAsync();
         }
 
 

@@ -19,7 +19,8 @@ namespace discord_bot.Core
         {
             _client = new DiscordSocketClient(new DiscordSocketConfig()
             {
-                LogLevel = LogSeverity.Debug
+                LogLevel = LogSeverity.Debug,
+                GatewayIntents = GatewayIntents.All
             });
 
             _commandService = new CommandService(new CommandServiceConfig()

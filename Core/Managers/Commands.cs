@@ -1,17 +1,14 @@
 using System.Linq;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using Newtonsoft.Json;
+using Discord_bot.Core.Managers;
 using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using discord_bot;
 using System.Threading;
-using discord_bot.Core.Managers;
 using System.Diagnostics;
 using System.Text;
 
@@ -20,16 +17,31 @@ namespace Friends.Commands
     [Name("Test")]
     public class Command : ModuleBase<ICommandContext>
     {
+        private static CommandService _service = ServiceManager.GetService<CommandService>();
 
 
-
-        [Command("getmyid")]
-        public async Task GetMyIdAsyc()
+        [Command("getMyId")]
+        public async Task GetMyIdAsync()
         {
             var user = Context.User;
             await ReplyAsync($"{user.Username}, ваш ID: {user.Id}");
         }
 
+        [Command("help")]
+        [Summary("Выводит все команды")]
+        public async Task Help()
+        {
+            string commands = string.Empty;
+
+            foreach (var module in _service.Modules)
+            {
+                foreach (var command in module.Commands)
+                {
+                    commands += $"`!{command.Name}`: {command.Summary ?? "-"}\n";
+                }
+            }
+            await ReplyAsync(commands);
+        }
 
     }
 
@@ -57,11 +69,11 @@ namespace Friends.Commands
     }
     class GenPermissions
     {
-        public Dictionary<string, PermissionsSearch> GaneralName { get; set; }
+        public Dictionary<string, PermissionsSearch> GeneralName { get; set; }
     }
     public class RequestPermission
     {
-        public string Adress { get; set; }
+        public string Address { get; set; }
         public string Method { get; set; }
         public string Data { get; set; }
         public string ECode { get; set; } = "UTF-8";
@@ -74,7 +86,7 @@ namespace Friends.Commands
     {
         private static GenPermissions outs = new GenPermissions()
         {
-            GaneralName = new Dictionary<string, PermissionsSearch>()
+            GeneralName = new Dictionary<string, PermissionsSearch>()
                 {
                     {"Steam",new PermissionsSearch()
                         {
@@ -130,18 +142,19 @@ namespace Friends.Commands
                         }
                         }
                     },
-                    
+
 
                 }
 
         };
+        [Command("getList")]
+        [Summary("Получает информацию обо всех наименования из файла")]
 
-        [Command("Scheak")]
-        public async Task SCheak()
+        public async Task getInfoList()
         {
             foreach (string line in System.IO.File.ReadLines(@"check.txt"))
             {
-                await CommandGet(line);
+                await getInfo(line);
             }
         }
         class BackBu
@@ -152,8 +165,8 @@ namespace Friends.Commands
         public static Regex expr = new Regex($"[^\\w a-zA-Z0-9 # ~ ` ! @ \" # $ : № % ^:&?*-_+=<>?,.\\ / | () \\[\\] {{}}]", RegexOptions.CultureInvariant);
         public static Regex AllSpec = new Regex($"[^\\w ]", RegexOptions.CultureInvariant);
         [Command("get")]
-
-        public async Task CommandGet([Remainder] string UserGameMessage)
+        [Summary("Получает информацию об введённом наименовании")]
+        public async Task getInfo([Remainder] string UserGameMessage)
         {
             Stopwatch sw = new Stopwatch();
             Stopwatch Gam = new Stopwatch();
@@ -163,31 +176,24 @@ namespace Friends.Commands
 
             List<EmbedFieldBuilder> tags = new List<EmbedFieldBuilder>();
             string ProcessedMessage = new Regex(" ").Replace(expr.Replace(UserGameMessage, ""), "+");
-            outs.GaneralName["Steam"].Request.Adress = $"https://store.steampowered.com/search/results?term={ProcessedMessage}&ignore_preferences=1&force_infinite=1&category1=998%2C21&os=win&snr=1_7_7_230_7";
+            outs.GeneralName["Steam"].Request.Address = $"https://store.steampowered.com/search/results?term={ProcessedMessage}&ignore_preferences=1&force_infinite=1&category1=998%2C21&os=win&snr=1_7_7_230_7";
 
 
-            foreach (var GaneralName in outs.GaneralName)
+            foreach (var GeneralName in outs.GeneralName)
             {
-                Thread newthread = new Thread(() =>
+                Thread newThread = new Thread(() =>
                 {
                     string CollectedResponse = null;
-                    HttpClientRequest(UserGameMessage, GaneralName.Value.Request, ref CollectedResponse);
+                    HttpClientRequest(UserGameMessage, GeneralName.Value.Request, ref CollectedResponse);
                     if (CollectedResponse != "")
-                        if (tags.Count() >= GaneralName.Value.Index)
-                            tags.Insert(GaneralName.Value.Index, new EmbedFieldBuilder { Name = GaneralName.Key, Value = CollectedResponse, IsInline = false });
+                        if (tags.Count() >= GeneralName.Value.Index)
+                            tags.Insert(GeneralName.Value.Index, new EmbedFieldBuilder { Name = GeneralName.Key, Value = CollectedResponse, IsInline = false });
                         else
-                            tags.Add(new EmbedFieldBuilder { Name = GaneralName.Key, Value = CollectedResponse, IsInline = false });
+                            tags.Add(new EmbedFieldBuilder { Name = GeneralName.Key, Value = CollectedResponse, IsInline = false });
                 });
-                newthread.Start();
-                newthread.Join();
+                newThread.Start();
+                newThread.Join();
             }
-
-
-
-
-
-
-
 
             var builder = new EmbedBuilder().WithColor(new Color(255, 255, 255));
             if (tags.Count() != 0)
@@ -201,16 +207,12 @@ namespace Friends.Commands
 
 
 
-
             //'Field name length must be less than or equal to 256.' Название не выше 256
             //'Основа to 1024.'
             // Объект 6000 включая title
 
-
-
             sw.Stop();
             Console.WriteLine($"Общие: {sw.Elapsed.TotalMilliseconds}");
-            // await ReplyAsync($"Введен не существующий номер");
 
 
         }
@@ -222,7 +224,7 @@ namespace Friends.Commands
             string Response = null;
 
 
-            HttpWebRequest _request = (HttpWebRequest)WebRequest.Create(Request.Adress);
+            HttpWebRequest _request = (HttpWebRequest)WebRequest.Create(Request.Address);
             _request.Proxy = null;
             ServicePointManager.Expect100Continue = false;
 
@@ -268,7 +270,7 @@ namespace Friends.Commands
             sw.Start();
             processingSearch(Response, UserGameMessage, ref CollectedResponse);
             sw.Stop();
-            Console.WriteLine($"{Request.Adress}\n{UserGameMessage}\n{sw.Elapsed.TotalMilliseconds}");
+            Console.WriteLine($"{Request.Address}\n{UserGameMessage}\n{sw.Elapsed.TotalMilliseconds}");
 
         }
 
@@ -276,18 +278,18 @@ namespace Friends.Commands
         {
 
             var CCollectedResponse = "";
-            foreach (var GaneralName in outs.GaneralName)
+            foreach (var GeneralName in outs.GeneralName)
             {
-                Thread newthread = new Thread(() =>
+                Thread newThread = new Thread(() =>
                 {
 
-                    foreach (var Generic in GaneralName.Value.Generic)
+                    foreach (var Generic in GeneralName.Value.Generic)
                     {
 
                         int StartTag = 0;
                         int EndTag = 0;
 
-                        While:
+                    While:
                         while (StartTag != -1)
                         {
 
@@ -318,7 +320,7 @@ namespace Friends.Commands
                                 }
                                 if (CheckTag == -1) goto While;
 
-                                //ToDo сделать EndTag так что бы варианты верхнего и нижнего регистра без ингорования 
+                                //ToDo сделать EndTag так что бы варианты верхнего и нижнего регистра без игнорирования 
                                 for (int i = 0; i < Generic.Manutag[Mi].ETag.Count(); i++)
                                 {
                                     ELine = FindResponse.IndexOf(Generic.Manutag[Mi].ETag[i], SLine);
@@ -365,12 +367,9 @@ namespace Friends.Commands
 
                     }
 
-
-
-
                 });
-                newthread.Start();
-                newthread.Join();
+                newThread.Start();
+                newThread.Join();
             }
             CollectedResponse = CCollectedResponse;
         }
