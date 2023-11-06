@@ -7,7 +7,7 @@ using discord_bot.Core.Managers;
 using Discord_bot.Core.Managers;
 using Microsoft.Extensions.DependencyInjection;
 
-//Реализация prefix и токин
+//Реализация prefix и токен
 namespace discord_bot.Core
 {
     public class Bot
