@@ -43,6 +43,7 @@ namespace discord_bot.Core
             //защита json
             if (string.IsNullOrWhiteSpace(ConfigManager.Config.Token))
             {
+                Console.WriteLine("Ошибка: не введён token");
                 return;
             }
 
